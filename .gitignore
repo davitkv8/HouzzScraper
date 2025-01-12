@@ -172,3 +172,7 @@ cython_debug/
 
 # For Pycharm
 .idea
+
+# Project files
+.result.json
+.scrapper.log
