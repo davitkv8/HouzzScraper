@@ -174,5 +174,5 @@ cython_debug/
 .idea
 
 # Project files
-.scrapper.log
+.app.log
 results.jsonl

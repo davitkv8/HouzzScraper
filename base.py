@@ -10,7 +10,7 @@ def setup_logger():
     logger = logging.getLogger("app_logger")
     logger.setLevel(logging.DEBUG)
 
-    file_handler = logging.FileHandler("scrapper.log")
+    file_handler = logging.FileHandler("app.log")
     file_handler.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()

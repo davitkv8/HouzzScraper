@@ -65,4 +65,4 @@ class HouzzSourcesCrawler:
         # Wait for threads to complete
         submit_thread.join()
         monitor_thread.join()
-        print(f"All tasks monitored and completed. Scrapped data - results.jsonl\nSystem Logs - scrapper.log")
+        print(f"All tasks monitored and completed. Scrapped data - results.jsonl\nApp Logs - app.log")
