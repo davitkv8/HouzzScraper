@@ -25,15 +25,14 @@ class HouzzScraper(WebPageFetcher):
         while self.current_page < self.total_pages:
             response = self.get_source_page(self.url)
             soup = BeautifulSoup(response.content, "html.parser")
-            crawler = HouzzSourcesCrawler().process_soup(soup=soup)
-            crawler.process_soup(soup)
+            HouzzSourcesCrawler().run(soup=soup)
 
             self._next_page()
 
 
 if __name__ == '__main__':
-    # url = input('Enter Houzz page URL: ')
-    # total_pages = int(input('Enter total pages to scrap: '))
+    # page_url = input('Enter Houzz page URL: ')
+    # total_pages_to_scrap = int(input('Enter total pages to scrap: '))
 
     page_url = "https://www.houzz.com/professionals/general-contractor/san-francisco-ca-us-probr0-bo~t_11786~r_5391959"
     total_pages_to_scrap = 1

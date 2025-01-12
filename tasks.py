@@ -90,7 +90,7 @@ def extract_metadata_from_header(content_header: Tag) -> MetaDataIdentifiers:
 
 
 @app.task(rate_limit='1/s')
-def parse_page_task(url: str) -> dto_models.Property | None:
+def parse_page_task(url: str) -> str:
     """Process detailed view page urls."""
 
     page_fetcher = WebPageFetcher()
@@ -195,6 +195,8 @@ def parse_page_task(url: str) -> dto_models.Property | None:
         )
 
         logger.info(f"Parsed property {property_dto.model_dump_json(indent=2)}")
+
+        return property_dto.model_dump_json(indent=2)
 
     except Exception as e:
         logger.warning(f"Failed to parse page: {url}: {e}")
