@@ -23,7 +23,8 @@
 # Take into account
 ```
     Average time for scraping 10 pages can take up to 4-6 minutes, as we have code-level delays while proxies aren't configured yet.
-    Currently, error handlings aren't well-optimized (not giving well valuable info at all), probably I will improve it.
+    Currently, error handlings aren't well-optimized (not giving well valuable info at all), probably I will improve it,
+    But at this point the result is 280 successful profiles out of 300. (I think it's ok)
     
     You can follow the application logs and results in live for sure:
     tail -f results.jsonl
