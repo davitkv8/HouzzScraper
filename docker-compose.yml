@@ -10,6 +10,8 @@ services:
       dockerfile: Docker/Dockerfile.app
     networks:
       - app_network
+    stdin_open: true
+    tty: true
     entrypoint: "Docker/app.sh"
 
   redis:

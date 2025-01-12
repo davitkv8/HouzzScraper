@@ -31,10 +31,7 @@ class HouzzScraper(WebPageFetcher):
 
 
 if __name__ == '__main__':
-    # page_url = input('Enter Houzz page URL: ')
-    # total_pages_to_scrap = int(input('Enter total pages to scrap: '))
-
-    page_url = "https://www.houzz.com/professionals/general-contractor/san-francisco-ca-us-probr0-bo~t_11786~r_5391959"
-    total_pages_to_scrap = 1
+    page_url = input('Enter Houzz page URL: ')
+    total_pages_to_scrap = int(input('Enter total pages to scrap: '))
 
     HouzzScraper(url=page_url, total_pages=total_pages_to_scrap).run_scraper()

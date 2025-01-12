@@ -26,14 +26,10 @@ class HouzzSourcesCrawler:
         if result_list is None:
             pass
 
-        counter = 0
         for a_tag in a_tags:
-            if counter > 1:
-                break
             href = a_tag['href']
             result = parse_page_task.delay(href)
             self.RESULT_QUEUE.put(result)
-            counter += 1
 
         # All tasks have been submitted
         self.SIGNAL.set()

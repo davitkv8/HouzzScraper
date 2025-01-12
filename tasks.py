@@ -199,4 +199,6 @@ def parse_page_task(url: str) -> str:
         return property_dto.model_dump_json(indent=2)
 
     except Exception as e:
+        info = {"error": str(e), "url": url}
         logger.warning(f"Failed to parse page: {url}: {e}")
+        return json.dumps(info)
