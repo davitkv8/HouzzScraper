@@ -2,6 +2,8 @@
 
 import re
 
+import datetime as dt
+
 from typing import Any
 
 from decimal import Decimal
@@ -12,9 +14,12 @@ from pydantic import BaseModel, model_validator, field_validator
 __all__ = [
     "PropertyDetails",
     "Reviewer",
+    "ReviewCard",
     "PropertyReviews",
     "Property",
 ]
+
+from base import logger
 
 
 class BasePropertyDTO(BaseModel):
@@ -69,11 +74,44 @@ class PropertyDetails(BasePropertyDTO):
 class Reviewer(BasePropertyDTO):
     """Defines common attributes for reviewer dto details."""
 
-    profile_url: str
-    profile_img: str
-    full_name: str
-    submitted_score: Decimal
+    display_name: str
+    is_professional: bool = False
+    profile_image: str | None = None
+
+
+class ReviewCard(BasePropertyDTO):
+    """Defines common attributes for review card dto details."""
+    author: Reviewer
     comment: str
+    relationship_type: str
+    project_date: dt.date | None = None
+    project_price: Decimal | None = None
+    project_price_as_string: str | None = None
+    submitted_rating: int | None = None
+    status: str | None = None
+    created_at: dt.datetime | None = None
+    updated_at: dt.datetime | None = None
+    total_likes: int | None = None
+    is_liked: bool = False
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def parse_datetime(cls, value):
+        if isinstance(value, int):
+            return dt.datetime.fromtimestamp(value)
+
+        return value
+
+    @field_validator("project_date", mode="before")
+    @classmethod
+    def validate_project_date(cls, value):
+        try:
+            if isinstance(value, str) and value != "0000-00-00":
+                return dt.date.fromisoformat(value)
+        except (ValueError, TypeError):
+            logger.warning("Invalid project date: '%s'", value)
+        return None
+
 
 class PropertyReviews(BasePropertyDTO):
     """Defines common attributes for reviews dto details."""
@@ -81,7 +119,7 @@ class PropertyReviews(BasePropertyDTO):
     communication: Decimal | None = None
     value: Decimal | None = None
     work_quality: Decimal | None = None
-    reviewers: list[Reviewer]
+    reviews: list[ReviewCard]
 
 
 class Property(BasePropertyDTO):

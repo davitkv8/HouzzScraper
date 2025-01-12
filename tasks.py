@@ -1,14 +1,15 @@
 """Module containing celery tasks."""
-
+import json
 import re
 from typing import TypedDict
 
 from celery import Celery
-
-import models as dto_models
-
 from bs4.element import Tag
+from bs4 import BeautifulSoup
+
 from base import WebPageFetcher, logger
+from helpers import get_nested_key
+import models as dto_models
 
 app = Celery(
     'houzz_tasks',
@@ -19,8 +20,13 @@ app = Celery(
 class MetaDataIdentifiers(TypedDict):
     """Metadata identifier details."""
 
-    pro_id: str | None
-    user_id: str | None
+    userId: str | None
+    proId: str | None
+    fromItem: str
+    itemsPerPage: str
+    sortType: str
+    searchWord: str
+    isPrivateView: str
 
 COMMON_CHUNK_TYPE_PAIRS = {
     "Verified License": bool,
@@ -30,6 +36,8 @@ COMMON_CHUNK_TYPE_PAIRS = {
     "Verified Hire": int,
     "Reviews": int,
 }
+
+REVIEWS_AJAX_BASE_URL = "https://www.houzz.com/j/ajax/profileReviewsAjax"
 
 
 def process_chunks(chunks: list[str]) -> tuple:
@@ -67,11 +75,17 @@ def extract_metadata_from_header(content_header: Tag) -> MetaDataIdentifiers:
     action_buttons_div = content_header.find('div', attrs={'data-container': 'Pro Actions'})
     share_button = action_buttons_div.find('button')
     pro_id = share_button.attrs.get('data-entity-id')
-    user_id = content_header.attrs.get('pro_user_id')
+    js_str = content_header.attrs.get('data-extra-info')
+    user_id = json.loads(js_str).get("pro_user_id") if js_str else None
 
     return {
-        "pro_id": pro_id,
-        "user_id": user_id,
+        "userId": user_id,
+        "proId": pro_id,
+        "fromItem": "0",
+        "itemsPerPage": "1024",
+        "sortType": "NEWEST",
+        "searchWord": "",
+        "isPrivateView": "undefined",
     }
 
 
@@ -79,7 +93,9 @@ def extract_metadata_from_header(content_header: Tag) -> MetaDataIdentifiers:
 def parse_page_task(url: str) -> dto_models.Property | None:
     """Process detailed view page urls."""
 
-    soup = WebPageFetcher().get_source_page(url)
+    page_fetcher = WebPageFetcher()
+    response = page_fetcher.get_source_page(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
 
     try:
 
@@ -127,32 +143,45 @@ def parse_page_task(url: str) -> dto_models.Property | None:
 
             property_reviews[field] = value
 
-        review_items = reviews_wrapper.find_all('div', class_='review-item') if reviews_wrapper else []
-        property_reviews["reviewers"] = []
-        for review_item in review_items:
-            review_detail = {}
+        response = page_fetcher.get_source_page(url=REVIEWS_AJAX_BASE_URL, params=header_metadata)
+        data = response.json()
 
-            reviewer_div = review_item.find('div', class_='review-item__reviewer')
-            thumbnail_div = reviewer_div.find('div', 'review-item__reviewer_left_side')
-            personal_info_div = reviewer_div.find('div', 'review-item__reviewer_right_side')
+        reviews = get_nested_key(data, "ProfessionalReviewsStore").get("data")
+        users = get_nested_key(data, "UserStore").get("data")
 
-            reviewer_details = personal_info_div.find('a')
+        review_cards: list[dto_models.ReviewCard] = []
+        for review in reviews.values():
+            reviewer_user_id = review["userId"]
+            user = users[str(reviewer_user_id)]
 
-            reviewer_profile_url = reviewer_details["href"]
-            reviewer_username = reviewer_details.get_text()
-            reviewer_profile_img = thumbnail_div.find('a')["href"]
-            submitted_review_score = personal_info_div.find('span', class_='review-rating').contents.__len__() - 1
-            reviewer_comment = review_item.find('div', class_='review-item__body-string').get_text()
+            reviewer_dto = dto_models.Reviewer(
+                display_name=user["displayName"],
+                is_professional=user.get("isProfessional", False),
+                profile_image=user.get("profileImage", None),
+            )
 
-            review_detail["profile_url"] = reviewer_profile_url
-            review_detail["full_name"] = reviewer_username
-            review_detail["profile_img"] = reviewer_profile_img
-            review_detail["submitted_score"] = submitted_review_score
-            review_detail["comment"] = reviewer_comment
+            try:
+                review_card_dto = dto_models.ReviewCard(
+                    author=reviewer_dto,
+                    comment=review.get("body"),
+                    relationship_type=review.get("relationship"),
+                    project_date=review.get("projectDate"),
+                    project_price=review.get("projectPrice"),
+                    project_price_as_string=review.get("projectPriceAsString"),
+                    submitted_rating=review.get("rating"),
+                    status=review.get("status"),
+                    created_at=review.get("created"),
+                    updated_at=review.get("modified"),
+                    total_likes=review.get("numberOfLikes"),
+                    is_liked=review.get("isLiked"),
+                )
+            except Exception as e:
+                logger.warning("Unexpected data received for `models.ReviewCard`: %s", e)
+                continue
 
-            reviewer_dto = dto_models.Reviewer(**review_detail)
-            property_reviews["reviewers"].append(reviewer_dto)
+            review_cards.append(review_card_dto)
 
+        property_reviews["reviews"] = review_cards
         property_reviews_dto = dto_models.PropertyReviews(**property_reviews)
 
         property_dto = dto_models.Property(
@@ -166,8 +195,6 @@ def parse_page_task(url: str) -> dto_models.Property | None:
         )
 
         logger.info(f"Parsed property {property_dto.model_dump_json(indent=2)}")
-
-        # return property_dto
 
     except Exception as e:
         logger.warning(f"Failed to parse page: {url}: {e}")

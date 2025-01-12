@@ -47,9 +47,8 @@ class WebPageFetcher:
         "X-Requested-With": "XMLHttpRequest",
     }
 
-    def get_source_page(self, url: str, params: dict | None = None) -> BeautifulSoup:
+    def get_source_page(self, url: str, params: dict | None = None) -> requests.Response:
         """Get requested source page."""
-
         try:
 
             if params is None:
@@ -59,11 +58,9 @@ class WebPageFetcher:
 
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-
             logger.info(f"Successfully fetched {url}")
 
-            return soup
+            return response
 
         except requests.exceptions.HTTPError as timeout_err:
             pass

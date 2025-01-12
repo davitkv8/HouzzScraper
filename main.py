@@ -1,4 +1,6 @@
 """Main file for executing data."""
+from bs4 import BeautifulSoup
+
 from base import WebPageFetcher
 from crawler import HouzzSourcesCrawler
 
@@ -21,8 +23,9 @@ class HouzzScraper(WebPageFetcher):
     def run_scraper(self):
 
         while self.current_page < self.total_pages:
-            soup = self.get_source_page(self.url)
-            crawler = HouzzSourcesCrawler(soup=soup, total_pages=self.total_pages)
+            response = self.get_source_page(self.url)
+            soup = BeautifulSoup(response.content, "html.parser")
+            crawler = HouzzSourcesCrawler().process_soup(soup=soup)
             crawler.process_soup(soup)
 
             self._next_page()
