@@ -22,4 +22,5 @@ def get_nested_key(data, target_key):
             nested_result = get_nested_key(item, target_key)
             if nested_result is not None:
                 return nested_result
+
     return None

@@ -41,8 +41,6 @@ class BasePropertyDTO(BaseModel):
         return result
 
 
-
-
 class PropertyDetails(BasePropertyDTO):
     """Defines common attributes for property dto details."""
 

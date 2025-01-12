@@ -1,7 +1,6 @@
 """Module containing shared functionality around modules."""
 
 import requests
-from bs4 import BeautifulSoup
 from requests import exceptions as requests_exceptions
 
 import logging
